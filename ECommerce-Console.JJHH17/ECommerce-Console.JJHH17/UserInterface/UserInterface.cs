@@ -1,5 +1,6 @@
 ﻿using System;
 using Spectre.Console;
+using System.Text.Json;
 
 namespace ECommerce_Console.JJHH17.UserInterface
 {
@@ -89,7 +90,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                 switch (choice)
                 {
                     case CategoryMenuOptions.ViewAllCategories:
-                        Console.WriteLine("Feature coming soon...");
+                        ViewAllCategories();
+                        Console.WriteLine("\nEnter any key to continue...");
                         Console.ReadKey();
                         break;
 
@@ -109,6 +111,49 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         CategoryLoop = false;
                         break;
                 }
+            }
+        }
+
+        public async static void ViewAllCategories()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Printing all categories[/]");
+
+            using HttpClient client = new HttpClient();
+
+            var table = new Table();
+            table.AddColumn("Category ID");
+            table.AddColumn("Category Name");
+            table.AddColumn("Product Quantity");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync("https://localhost:7054/api/Categories");
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                foreach(var category in System.Text.Json.JsonDocument.Parse(responseBody).RootElement.EnumerateArray())
+                {
+                    // Collecting category info
+                    string categoryId = category.GetProperty("categoryId").ToString();
+                    string categoryName = category.GetProperty("categoryName").ToString();
+
+                    // For product quantity count
+                    int productCount = 0;
+                    if (category.TryGetProperty("products", out JsonElement productsElement) &&
+                        productsElement.ValueKind == JsonValueKind.Array)
+                    {
+                        productCount = productsElement.GetArrayLength();
+                    }
+
+                    table.AddRow(categoryId, categoryName, productCount.ToString());
+                }
+                AnsiConsole.Write(table);
+            }
+
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
             }
         }
     }

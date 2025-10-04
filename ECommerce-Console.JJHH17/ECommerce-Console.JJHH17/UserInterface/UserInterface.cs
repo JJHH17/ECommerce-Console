@@ -1,6 +1,7 @@
 ﻿using System;
 using Spectre.Console;
 using System.Text.Json;
+using System.Net;
 
 namespace ECommerce_Console.JJHH17.UserInterface
 {
@@ -96,7 +97,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case CategoryMenuOptions.ViewCategoryById:
-                        Console.WriteLine("Feature coming soon...");
+                        ViewCategoryById();
+                        Console.WriteLine("\nEnter any key to continue...");
                         Console.ReadKey();
                         break;
 
@@ -155,6 +157,82 @@ namespace ECommerce_Console.JJHH17.UserInterface
             {
                 AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
             }
+        }
+
+        public async static void ViewCategoryById()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Print a category by its ID[/]");
+            int inputId;
+
+            while (true)
+            {
+                Console.WriteLine("Enter the ID of the category that you want to view");
+                string stringInput = Console.ReadLine();
+
+                if (int.TryParse(stringInput, out inputId))
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid entry... Please enter a numeric value");
+                }
+            }
+
+            using HttpClient client = new HttpClient();
+
+            var table = new Table();
+            table.AddColumn("Category ID");
+            table.AddColumn("Category Name");
+            table.AddColumn("Product Quantity");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync($"https://localhost:7054/api/Categories/{inputId}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    AnsiConsole.MarkupLine($"[red]Category ID: {inputId} not found[/]");
+                    return;
+                }
+
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var root = doc.RootElement;
+
+                // Reading the fields 
+                string categoryId = root.GetProperty("categoryId").ToString();
+                string categoryName = root.GetProperty("categoryName").ToString();
+
+                // Counting product quantity
+                int productCount = 0;
+                if (root.TryGetProperty("products", out JsonElement products) &&
+                    products.ValueKind == JsonValueKind.Array)
+                {
+                    productCount = products.GetArrayLength();
+                }
+
+                table.AddRow(categoryId, categoryName, productCount.ToString());
+                AnsiConsole.Write(table);
+            }
+
+            catch (HttpRequestException e)
+            {
+                Console.Clear();
+                AnsiConsole.MarkupLine($"ID {inputId} not found, please try again, enter any key to continue...");
+                Console.ReadKey();
+            }
+
+            catch (Exception e) 
+            {
+                AnsiConsole.MarkupLine("[red]An error occurred. Please check the database and API connection.[/]");
+                AnsiConsole.MarkupLine("[red]Please also check the inputted value...[/]");
+                AnsiConsole.WriteLine(e.ToString());
+            } 
+
         }
     }
 }

@@ -29,8 +29,7 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case MenuOptions.Categories:
-                        Console.WriteLine("Feature coming soon");
-                        Console.ReadKey();
+                        CategoryMenu();
                         Console.Clear();
                         break;
 
@@ -62,6 +61,55 @@ namespace ECommerce_Console.JJHH17.UserInterface
         {
             AnsiConsole.MarkupLine("[darkslategray1]Welcome to the ECommerce GUI![/]");
             AnsiConsole.MarkupLine("[darkslategray1]From here, you can create a sale of products, add a new product, or add a new product category[/]");
+        }
+
+        enum CategoryMenuOptions
+        {
+            ViewAllCategories,
+            ViewCategoryById,
+            AddCategory,
+            ExitToMenu
+        }
+
+        public static void CategoryMenu()
+        {
+            Console.WriteLine();
+
+            bool CategoryLoop = true;
+            while (CategoryLoop)
+            {
+                Console.Clear();
+                AnsiConsole.MarkupLine("[blue]Category Menu[/]");
+
+                var choice = AnsiConsole.Prompt(
+                    new SelectionPrompt<CategoryMenuOptions>()
+                    .Title("Please select an option")
+                    .AddChoices(Enum.GetValues<CategoryMenuOptions>()));
+
+                switch (choice)
+                {
+                    case CategoryMenuOptions.ViewAllCategories:
+                        Console.WriteLine("Feature coming soon...");
+                        Console.ReadKey();
+                        break;
+
+                    case CategoryMenuOptions.ViewCategoryById:
+                        Console.WriteLine("Feature coming soon...");
+                        Console.ReadKey();
+                        break;
+
+                    case CategoryMenuOptions.AddCategory:
+                        Console.WriteLine("Feature coming soon...");
+                        Console.ReadKey();
+                        break;
+
+                    case CategoryMenuOptions.ExitToMenu:
+                        AnsiConsole.MarkupLine("[blue]Enter any key to exit to main menu...[/]");
+                        Console.ReadKey();
+                        CategoryLoop = false;
+                        break;
+                }
+            }
         }
     }
 }

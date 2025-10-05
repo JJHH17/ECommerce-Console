@@ -1,5 +1,6 @@
 ﻿using ECommerce_Console.JJHH17.UserInterface.SubMenus;
 using Spectre.Console;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace ECommerce_Console.JJHH17.UserInterface
@@ -101,7 +102,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case ProductOptions.AddProduct:
-                        Console.WriteLine("Feature Coming soon...");
+                        AddNewProduct();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -217,6 +219,127 @@ namespace ECommerce_Console.JJHH17.UserInterface
                     AnsiConsole.MarkupLine("[red]An error occurred. Please check the database and API connection.[/]");
                     AnsiConsole.MarkupLine("[red]Please also check the inputted value...[/]");
                     AnsiConsole.WriteLine(e.ToString());
+            }
+        }
+
+        public static List<string> CreateProduct()
+        {
+            List<string> productInfo = new List<string>();
+            productInfo.Add(NameProduct());
+            productInfo.Add(ProductPrice());
+            productInfo.Add(ProductCatId());
+
+            return productInfo;
+        }
+
+        public static string NameProduct()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Create a new product[/]");
+            string productName;
+
+            while (true)
+            {
+                Console.WriteLine("Enter a product name");
+                string inputName = Console.ReadLine();
+                if (inputName.Length == 0 || inputName is null)
+                {
+                    Console.WriteLine("Please enter atleast 1 character");
+                }
+                else
+                {
+                    productName = inputName;
+                    break;
+                }
+            }
+
+            return productName;
+        }
+
+        public static string ProductPrice()
+        {
+            Console.Clear();
+            decimal price;
+
+            while (true)
+            {
+                AnsiConsole.MarkupLine("[blue]Enter the products price[/]");
+                string priceString = Console.ReadLine();
+
+                if (Decimal.TryParse(priceString, out price))
+                {
+                    break;
+                } 
+                else
+                {
+                    AnsiConsole.MarkupLine("[red]Please enter a valid price decimal[/]");
+                }
+            }
+
+            return price.ToString();
+        }
+
+        public static string ProductCatId()
+        {
+            Console.Clear();
+            int categoryId;
+            CategoryMenu.ViewAllCategories();
+
+            while (true)
+            {
+                AnsiConsole.MarkupLine("[blue]Enter the category ID that this product belongs to[/]");
+                string catIdString = Console.ReadLine();
+
+                if (int.TryParse(catIdString, out categoryId))
+                {
+                    break;
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine("[red]Please enter a valid numeric value[/]");
+                }
+            }
+
+            return categoryId.ToString();
+        }
+
+        public async static Task AddNewProduct()
+        {
+            Console.Clear();
+            List<string> newProductInfo = CreateProduct();
+
+            using var client = new HttpClient { BaseAddress = new Uri("https://localhost:7054/api/") };
+
+            var payload = new { name = newProductInfo[0], price = newProductInfo[1], categoryId = newProductInfo[2] };
+
+            try
+            {
+                HttpResponseMessage response = await client.PostAsJsonAsync("Products", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    AnsiConsole.MarkupLine("[blue]Product added![/]");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    AnsiConsole.MarkupLine($"[blue]Error! Product may already exist, or the category does not exist[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]Response failed: {response.StatusCode}[/]");
+                }
+            }
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]A HTTP error occurred {e.Message}[/]");
+            }
+            catch (TaskCanceledException)
+            {
+                AnsiConsole.MarkupLine("[red]The response timed out. Please try again[/]");
+            }
+            catch (Exception e)
+            {
+                AnsiConsole.MarkupLine($"[red]An unexpected error occured: {e.Message}[/]");
             }
         }
     }

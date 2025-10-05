@@ -1,5 +1,6 @@
 ﻿using ECommerce_Console.JJHH17.UserInterface.SubMenus;
 using Spectre.Console;
+using System.Linq.Expressions;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -96,7 +97,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case SaleMenuOptions.ViewSaleById:
-                        Console.WriteLine("Feature coming soon");
+                        ViewSaleById();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -146,6 +148,89 @@ namespace ECommerce_Console.JJHH17.UserInterface
             catch (HttpRequestException e)
             {
                 AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
+            }
+        }
+
+        public async static void ViewSaleById()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Print a sale by its ID[/]");
+            int inputId;
+
+            while (true)
+            {
+                Console.WriteLine("Enter the ID of the sale that you want to view");
+                string stringInput = Console.ReadLine();
+
+                if (int.TryParse(stringInput, out inputId))
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid entry... Please enter a numeric value");
+                }
+            }
+
+            var productInfo = new Table();
+            productInfo.AddColumn("Product ID");
+            productInfo.AddColumn("Product Name");
+            productInfo.AddColumn("Product Price");
+
+            using HttpClient client = new HttpClient();
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync($"https://localhost:7054/api/Sales/{inputId}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    AnsiConsole.MarkupLine($"[red]Sale ID: {inputId} not found[/]");
+                    return;
+                }
+
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var root = doc.RootElement;
+
+                // Product info data
+                if (root.TryGetProperty("products", out var productsElem) && productsElem.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var prod in productsElem.EnumerateArray())
+                    {
+                        var prodId = prod.GetProperty("productId").ToString();
+                        var prodName = prod.GetProperty("productName").ToString();
+                        var prodPrice = prod.GetProperty("price").ToString();
+
+                        productInfo.AddRow(prodId, prodName, prodPrice);
+                    }
+
+                    if (productInfo.Rows.Count > 0)
+                    {
+                        AnsiConsole.WriteLine();
+                        AnsiConsole.MarkupLine("[blue]Products[/]");
+                        AnsiConsole.Write(productInfo);
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine("[red]No existing products found for this sale[/]");
+                    }
+                } 
+            }
+            
+            catch (HttpRequestException e)
+            {
+                Console.Clear();
+                AnsiConsole.MarkupLine($"ID {inputId} not found, please try again, enter any key to continue...");
+                Console.ReadKey();
+            }
+
+            catch (Exception e)
+            {
+                AnsiConsole.MarkupLine("[red]An error occurred. Please check the database and API connection.[/]");
+                AnsiConsole.MarkupLine("[red]Please also check the inputted value...[/]");
+                AnsiConsole.WriteLine(e.ToString());
             }
         }
     }

@@ -103,7 +103,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case SaleMenuOptions.AddSale:
-                        Console.WriteLine("Feature coming soon");
+                        AddNewSale();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -231,6 +232,96 @@ namespace ECommerce_Console.JJHH17.UserInterface
                 AnsiConsole.MarkupLine("[red]An error occurred. Please check the database and API connection.[/]");
                 AnsiConsole.MarkupLine("[red]Please also check the inputted value...[/]");
                 AnsiConsole.WriteLine(e.ToString());
+            }
+        }
+
+        public static List<int> ListProductIds()
+        {
+            var idList = new List<int>();
+
+            Console.Clear();
+            ProductMenu.ViewAllProducts();
+
+            bool running = true;
+            while (running)
+            {
+                int integerInput;
+                AnsiConsole.MarkupLine("[blue]Enter a list of product IDs to purchase them[/]");
+                AnsiConsole.MarkupLine("[blue]Enter an empty value to quit[/]");
+                string inputString = Console.ReadLine();
+
+                if (inputString.Length == 0)
+                {
+                    running = false;
+                    break;
+                }
+
+                if (int.TryParse(inputString, out integerInput)) { 
+                    idList.Add(integerInput);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine("[red]Please enter a valid value[/]");
+                }
+            }
+
+            return idList;
+        }
+
+        public static List<string> stringConversion()
+        {
+            List<int> toConvert = ListProductIds();
+            List<string> converted = new List<string>();
+
+            foreach (int item in toConvert)
+            {
+                converted.Add(item.ToString());
+            }
+
+            return converted;
+        }
+
+        public async static Task AddNewSale()
+        {
+            Console.Clear();
+            List<string> payloadItems = stringConversion();
+
+            using var client = new HttpClient { BaseAddress = new Uri("https://localhost:7054/api/") };
+            var productIds = payloadItems.Select(int.Parse).ToList();
+
+            var payload = new { productIds = productIds, };
+
+            try
+            {
+                HttpResponseMessage response = await client.PostAsJsonAsync("Sales", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    AnsiConsole.MarkupLine("[blue]Sale added![/]");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    AnsiConsole.MarkupLine($"[blue]Error! A category entered may not exist[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]Response failed: {response.StatusCode}[/]");
+                }
+            }
+
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]A HTTP error occurred {e.Message}[/]");
+            }
+
+            catch (TaskCanceledException)
+            {
+                AnsiConsole.MarkupLine("[red]The response timed out. Please try again[/]");
+            }
+
+            catch (Exception e)
+            {
+                AnsiConsole.MarkupLine($"[red]An unexpected error occured: {e.Message}[/]");
             }
         }
     }

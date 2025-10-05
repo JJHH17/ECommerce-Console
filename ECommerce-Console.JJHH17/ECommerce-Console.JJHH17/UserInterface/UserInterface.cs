@@ -2,6 +2,8 @@
 using Spectre.Console;
 using System.Text.Json;
 using System.Net;
+using System.Net.Http.Json;
+using System.Net.Http.Headers;
 
 namespace ECommerce_Console.JJHH17.UserInterface
 {
@@ -103,7 +105,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case CategoryMenuOptions.AddCategory:
-                        Console.WriteLine("Feature coming soon...");
+                        AddNewCategory();
+                        Console.WriteLine("\nEnter any key to continue...");
                         Console.ReadKey();
                         break;
 
@@ -233,6 +236,70 @@ namespace ECommerce_Console.JJHH17.UserInterface
                 AnsiConsole.WriteLine(e.ToString());
             } 
 
+        }
+
+        public static string NameCategory()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Create a new product category[/]");
+            string categoryName;
+
+            while (true)
+            {
+                Console.WriteLine("Enter a category name");
+                string inputName = Console.ReadLine();
+                if (inputName.Length == 0 || inputName is null)
+                {
+                    Console.WriteLine("Please enter atleast 1 character");
+                }
+                else
+                {
+                    categoryName = inputName;
+                    break;
+                }
+            }
+
+            return categoryName;
+        }
+
+        public async static Task AddNewCategory()
+        {
+            Console.Clear();
+            string newCategory = NameCategory();
+
+            using var client = new HttpClient { BaseAddress = new Uri("https://localhost:7054/api/") };
+
+            var payload = new { name = newCategory };
+
+            try
+            {
+                HttpResponseMessage response = await client.PostAsJsonAsync("Categories", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    AnsiConsole.MarkupLine("[blue]Category added![/]");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    AnsiConsole.MarkupLine($"[blue]Category {newCategory} already exists![/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]Response failed: {response.StatusCode}[/]");
+                }
+            }
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]A HTTP error occurred {e.Message}[/]");
+            }
+            catch (TaskCanceledException)
+            {
+                AnsiConsole.MarkupLine("[red]The response timed out. Please try again[/]");
+            }
+            catch (Exception e)
+            {
+                AnsiConsole.MarkupLine($"[red]An unexpected error occured: {e.Message}[/]");
+            }
         }
     }
 }

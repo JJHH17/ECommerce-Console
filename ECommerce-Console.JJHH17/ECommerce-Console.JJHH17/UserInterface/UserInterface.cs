@@ -1,5 +1,6 @@
-﻿using Spectre.Console;
-using ECommerce_Console.JJHH17.UserInterface.SubMenus;
+﻿using ECommerce_Console.JJHH17.UserInterface.SubMenus;
+using Spectre.Console;
+using System.Text.Json;
 
 namespace ECommerce_Console.JJHH17.UserInterface
 {
@@ -94,7 +95,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         break;
 
                     case ProductOptions.ViewProductById:
-                        Console.WriteLine("Feature coming soon...");
+                        ViewProductById();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -146,6 +148,75 @@ namespace ECommerce_Console.JJHH17.UserInterface
             catch (HttpRequestException e)
             {
                 AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
+            }
+        }
+        public async static void ViewProductById()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Print a product by its ID[/]");
+            int inputId;
+
+            while (true)
+            {
+                Console.WriteLine("Enter the ID of the product that you want to view");
+                string stringInput = Console.ReadLine();
+
+                if (int.TryParse(stringInput, out inputId))
+                {
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid entry... Please enter a numeric value");
+                }
+            }
+            using HttpClient client = new HttpClient();
+
+            var table = new Table();
+            table.AddColumn("Product ID");
+            table.AddColumn("Product Name");
+            table.AddColumn("Price");
+            table.AddColumn("Category ID");
+            table.AddColumn("Category Name");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync($"https://localhost:7054/api/Products/{inputId}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    AnsiConsole.MarkupLine($"[red]Category ID: {inputId} not found[/]");
+                    return;
+                }
+
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var root = doc.RootElement;
+
+                string productId = root.GetProperty("productId").ToString();
+                string productName = root.GetProperty("productName").ToString();
+                string price = root.GetProperty("price").ToString();
+                string categoryId = root.GetProperty("categoryId").ToString();
+                string categoryName = root.GetProperty("categoryName").ToString();
+
+                table.AddRow(productId, productName, price, categoryId, categoryName);
+                AnsiConsole.Write(table);
+                }
+                
+            catch (HttpRequestException e)
+                {
+                    Console.Clear();
+                    AnsiConsole.MarkupLine($"ID {inputId} not found, please try again, enter any key to continue...");
+                    Console.ReadKey();
+                }
+
+            catch (Exception e)
+                {
+                    AnsiConsole.MarkupLine("[red]An error occurred. Please check the database and API connection.[/]");
+                    AnsiConsole.MarkupLine("[red]Please also check the inputted value...[/]");
+                    AnsiConsole.WriteLine(e.ToString());
             }
         }
     }

@@ -90,7 +90,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                 switch (choice)
                 {
                     case SaleMenuOptions.ViewAllSales:
-                        Console.WriteLine("Feature coming soon");
+                        ViewAllSales();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -110,6 +111,41 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         SaleLoop = false;
                         break;
                 }
+            }
+        }
+
+        public async static void ViewAllSales()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Printing all sales[/]");
+
+            using HttpClient client = new HttpClient();
+
+            var table = new Table();
+            table.AddColumn("Sale ID");
+            table.AddColumn("Total Price");
+            table.AddColumn("Item Quantity");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync("https://localhost:7054/api/Sales");
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                foreach (var sale in System.Text.Json.JsonDocument.Parse(responseBody).RootElement.EnumerateArray())
+                {
+                    string saleID = sale.GetProperty("saleId").ToString();
+                    string totalPrice = sale.GetProperty("itemCount").ToString();
+                    string itemQuantity = sale.GetProperty("salePrice").ToString();
+
+                    table.AddRow(saleID, totalPrice, itemQuantity);
+                }
+
+                AnsiConsole.Write(table);
+            }
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
             }
         }
     }

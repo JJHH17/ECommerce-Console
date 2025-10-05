@@ -88,7 +88,8 @@ namespace ECommerce_Console.JJHH17.UserInterface
                 switch (choice)
                 {
                     case ProductOptions.ViewAllProducts:
-                        Console.WriteLine("Feature coming soon...");
+                        ViewAllProducts();
+                        Console.WriteLine("Enter any key to continue");
                         Console.ReadKey();
                         break;
 
@@ -108,6 +109,43 @@ namespace ECommerce_Console.JJHH17.UserInterface
                         ProductLoop = false;
                         break;
                 }
+            }
+        }
+        public async static void ViewAllProducts()
+        {
+            Console.Clear();
+            AnsiConsole.MarkupLine("[blue]Printing all products[/]");
+
+            using HttpClient client = new HttpClient();
+
+            var table = new Table();
+            table.AddColumn("Product ID");
+            table.AddColumn("Product Name");
+            table.AddColumn("Price");
+            table.AddColumn("Category ID");
+            table.AddColumn("Category Name");
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync("https://localhost:7054/api/Products");
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                foreach (var product in System.Text.Json.JsonDocument.Parse(responseBody).RootElement.EnumerateArray())
+                {
+                    string productId = product.GetProperty("productId").ToString();
+                    string productName = product.GetProperty("productName").ToString();
+                    string price = product.GetProperty("price").ToString();
+                    string categoryId = product.GetProperty("categoryId").ToString();
+                    string categoryName = product.GetProperty("categoryName").ToString();
+
+                    table.AddRow(productId, productName, price, categoryId, categoryName);
+                }
+                AnsiConsole.Write(table);
+            }
+            catch (HttpRequestException e)
+            {
+                AnsiConsole.MarkupLine($"[red]Request error: {e.Message}[/]");
             }
         }
     }
